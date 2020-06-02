@@ -19,7 +19,7 @@ ENCODER_PARAMETERS = {
 }
 
 STYLEGAN_PARAMETERS = {
-    image_size: 128
+    "image_size": 128
 }
 
 TRANSFORM = [
@@ -29,7 +29,7 @@ TRANSFORM = [
 
 TRAIN_TRANSFORM = [
     transforms.RandomHorizontalFlip(),        
-    transforms.CenterCrop(image_size),
+    transforms.CenterCrop(STYLEGAN_PARAMETERS['image_size']),
             
 ]
 
@@ -46,8 +46,8 @@ torch.backends.cudnn.benchmark = False
 
 ################################### Environment & stuff ###################################
 
-ROOT_DIR = Path(os.environ['ROOT_DIR'])
-
+ROOT_DIR = Path(os.environ['PWD'])
+print(ROOT_DIR)
 # Input data
 
 DATA_ROOT = ROOT_DIR / 'data'

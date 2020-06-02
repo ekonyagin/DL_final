@@ -70,10 +70,10 @@ class HoloEncoder(nn.Module):
         Encoder made in HoloGAN style.
     '''
 
-    def __init__(self, nf=32):
+    def __init__(self, nf=32, log_shape=6):
         super().__init__()
         self.nf = nf
-
+        self.log_shape = log_shape
         self.res_conv1 = ResBlock2d(3, 128, kernel_size=3, dilation=2)
         self.res_conv2 = ResBlock2d(128, self.nf * 128, kernel_size=3,
                                     dilation=2)
@@ -101,7 +101,7 @@ class HoloEncoder(nn.Module):
         self.res_conv5 = ResBlock2d(512, 512)
 
         self.fc = nn.Sequential(
-            nn.Linear(512 * 16 * 16, 7 * 512)
+            nn.Linear(512 * 16 * 16, self.log_shape * 512)
         )
 
     def stn(self, x, theta):
@@ -147,8 +147,8 @@ class HoloEncoder(nn.Module):
         x = F.avg_pool2d(x, 2)  # -> (bs, 512, 16, 16)
         x = x.reshape(bs, -1)
 
-        x = self.fc(x)  # -> (bs, 7 * 512)
-        latent_code = x.reshape(bs, 7, 512)
+        x = self.fc(x)  # -> (bs, log_shape * 512)
+        latent_code = x.reshape(bs, self.log_shape, 512)
 
         return latent_code
 
@@ -163,10 +163,11 @@ class HoloEncoderLight(nn.Module):
 
     '''
 
-    def __init__(self, nf=32):
+    def __init__(self, nf=32, log_shape=6):
         super().__init__()
         self.nf = nf
-
+        self.log_shape = log_shape
+        
         self.conv1 = ResBlock2d(3, 128, kernel_size=3, dilation=2)
         self.conv2 = ResBlock2d(128, self.nf * 128, kernel_size=3, dilation=2)
 
@@ -195,7 +196,7 @@ class HoloEncoderLight(nn.Module):
         self.conv6 = ResBlock2d(pnf // 16, pnf // 32)
 
         self.fc = nn.Sequential(
-            nn.Linear(pnf // 32 * 8 * 8, 7 * 512)
+            nn.Linear(pnf // 32 * 8 * 8, self.log_shape * 512)
         )
 
     def stn(self, x, theta):
@@ -244,7 +245,7 @@ class HoloEncoderLight(nn.Module):
         x = F.adaptive_avg_pool2d(x, (8, 8))
         x = x.reshape(bs, -1)
 
-        x = self.fc(x)  # -> (bs, 7 * 512)
-        latent_code = x.reshape(bs, 7, 512)
+        x = self.fc(x)  # -> (bs, log_shape * 512)
+        latent_code = x.reshape(bs, self.log_shape, 512)
 
         return latent_code
