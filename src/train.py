@@ -16,6 +16,7 @@ if __name__ == '__main__':
     
     disc_opt = cfg.D_OPT(model.stylegan.discriminator.parameters())
     enc_opt = cfg.ENC_OPT(model.encoder.parameters())
+    
     for artifact in artifacts:
         prepare(globals()[artifact], artifact)
 

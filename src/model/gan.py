@@ -15,7 +15,7 @@ class HoloStyleGAN(nn.Module):
         """
         if angles==None:
             angles = [0.0 for _ in range(img.shape[0])
-        return stylegan(encoder(images, angles))
+        return stylegan.G(encoder(images, angles))
 
     def compute_loss(self):
         pass
