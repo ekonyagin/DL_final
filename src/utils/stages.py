@@ -6,7 +6,7 @@ from tqdm import tqdm
 from config import cfg
 
 
-def train(encoder: nn.Module, stylegan: nn.Module,
+def train(model: nn.Module,
           enc_opt: torch.optim, gan_opt: torch.optim, 
           loader: torch.utils.data.dataloader.DataLoader, save_every=1000):
     """
@@ -23,7 +23,8 @@ def train(encoder: nn.Module, stylegan: nn.Module,
     """
     #def model_name(num):
     #    return str(/ name / f'model_{num}.pt')
-    
+    encoder = model.encoder
+    stylegan = model.stylegan
     encoder.train()
     stylegan.D.train()
     stylegan.G.eval()
@@ -100,9 +101,8 @@ def train(encoder: nn.Module, stylegan: nn.Module,
             
         ##########PLACEHOLDER FOR SAVING##########
         #if STEPS % save_every == 0:
-        #    torch.save(stylegan.state_dict(), self.model_name(num))
-        #    torch.save(encoder.state_dict(), self.model_name(num))
-
+        #    torch.save(model.state_dict(), self.model_name(num))
+        
         #checkpoint_num = floor(STEPS / self.save_every)
         """
         if torch.isnan(total_disc_loss):
