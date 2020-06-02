@@ -8,17 +8,21 @@ from config import cfg
 
 def train(encoder: nn.Module, stylegan: nn.Module,
           enc_opt: torch.optim, gan_opt: torch.optim, 
-          loader: torch.utils.data.dataloader.DataLoader):
+          loader: torch.utils.data.dataloader.DataLoader, save_every=1000):
     """
     Conducts training of HoloEncoder and StyleGAN2 discriminators in three modes:
      - pass real images directly to discriminator
      - pass rotated through HoloEncoder vectors to StyleGAN
      - pass NOT rotated HoloEncoder to StyleGAN and count identity loss (L1 loss)
     
-    Inputs: encoder - nn.Module HoloEncoder, stylegan - nn.Module StyleGAN with frozen generator, enc_opt - torch.optim 
-    optimizer for encoder, gan_opt - torch.optim optimizer for discriminator, loader - torch.utils.data.dataloader.DataLoader
+    Inputs: encoder - nn.Module HoloEncoder, stylegan - nn.Module StyleGAN with frozen generator, 
+    enc_opt - torch.optim optimizer for encoder, gan_opt - torch.optim optimizer for discriminator, 
+    loader - torch.utils.data.dataloader.DataLoader,
+    save_every - int (optional) frequency of checkpoints saving
     for images loading
     """
+    #def model_name(num):
+    #    return str(/ name / f'model_{num}.pt')
     
     encoder.train()
     stylegan.D.train()
@@ -93,8 +97,11 @@ def train(encoder: nn.Module, stylegan: nn.Module,
 
         if STEPS <= 25000 and STEPS % 1000 == 2:
             stylegan.reset_parameter_averaging()
-
-        
+            
+        ##########PLACEHOLDER FOR SAVING##########
+        #if STEPS % save_every == 0:
+        #    torch.save(stylegan.state_dict(), self.model_name(num))
+        #    torch.save(encoder.state_dict(), self.model_name(num))
 
         #checkpoint_num = floor(STEPS / self.save_every)
         """
@@ -104,8 +111,7 @@ def train(encoder: nn.Module, stylegan: nn.Module,
             raise NanException
 
         periodically save results
-        if self.steps % self.save_every == 0:
-            self.save(checkpoint_num)
+        
 
         if self.steps % 1000 == 0 or (self.steps % 100 == 0 and self.steps < 2500):
             self.evaluate(floor(self.steps / 1000))
