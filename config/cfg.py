@@ -14,8 +14,9 @@ BATCH_SIZE = 64
 ENC_OPT = lambda parameters: torch.optim.Adam(parameters, 1e-3, weight_decay=0)
 D_OPT = lambda parameters: torch.optim.Adam(parameters, 1e-3, weight_decay=0)
 
+###log_shape must be equal to log2(img_shape) - 1 !!!#####
 ENCODER_PARAMETERS = {
-
+    "log_shape": 6
 }
 
 STYLEGAN_PARAMETERS = {
