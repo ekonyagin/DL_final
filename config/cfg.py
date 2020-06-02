@@ -46,7 +46,7 @@ torch.backends.cudnn.benchmark = False
 
 ################################### Environment & stuff ###################################
 
-ROOT_DIR = Path(os.environ['PWD'])
+ROOT_DIR = Path(os.environ['ROOT_DIR'])
 print(ROOT_DIR)
 # Input data
 
