@@ -61,7 +61,7 @@ def train(model: nn.Module,
         image_batch = next(loader).cuda()
         image_batch.requires_grad_()
         noise = torch.FloatTensor(batch_size, image_size, image_size, 1).uniform_(0., 1.).cuda()
-        thetas = torch.zeros(10)
+        thetas = torch.zeros(batch_size)
         w_styles = encoder(image_batch, thetas)
         
         generated_images = stylegan.G(w_styles, noise)
@@ -87,7 +87,7 @@ def train(model: nn.Module,
 
         #self.d_loss = float(total_disc_loss)
         
-        disc_loss.backwards()
+        disc_loss.backward()
         enc_opt.step()
         gan_opt.step()
         
