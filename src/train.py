@@ -1,6 +1,7 @@
 from config import cfg
 from src.model.utils import save, prepare
-from src.model.gan import HoloStyleGAN
+from src.model.encoder import HoloEncoder, HoloEncoderLight
+from src.model.stylegan_no_gen_training import StyleGAN2
 from src.utils import experiment
 from src.utils.loaders import make_loader
 from src.utils.stages import train, test, sample
@@ -10,9 +11,11 @@ if __name__ == '__main__':
     experiment.save()
     artifacts = ['gan', 'g_opt', 'd_opt']
 
-    gan = HoloStyleGAN(**cfg.MODEL_PARAMETERS)
-    g_opt = cfg.G_OPT(gan.generator.parameters())
-    d_opt = cfg.D_OPT(gan.discriminator.parameters())
+    #gan = HoloStyleGAN(**cfg.MODEL_PARAMETERS)
+    encoder = HoloEncoderLight(**cfg.ENCODER_PARAMETERS)
+    gan = StyleGAN2(**cfg.STYLEGAN_PARAMETERS)
+    enc_opt = cfg.ENC_OPT(gan.generator.parameters())
+    disc_opt = cfg.D_OPT(gan.discriminator.parameters())
 
     for artifact in artifacts:
         prepare(globals()[artifact], artifact)

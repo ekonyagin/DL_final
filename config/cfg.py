@@ -11,11 +11,15 @@ from torchvision import transforms
 N_EPOCHS = 100
 BATCH_SIZE = 64
 
-G_OPT = lambda parameters: torch.optim.Adam(parameters, 1e-3, weight_decay=0)
+ENC_OPT = lambda parameters: torch.optim.Adam(parameters, 1e-3, weight_decay=0)
 D_OPT = lambda parameters: torch.optim.Adam(parameters, 1e-3, weight_decay=0)
 
-MODEL_PARAMETERS = {
+ENCODER_PARAMETERS = {
 
+}
+
+STYLEGAN_PARAMETERS = {
+    image_size: 128
 }
 
 TRANSFORM = [
@@ -24,7 +28,9 @@ TRANSFORM = [
 ]
 
 TRAIN_TRANSFORM = [
-    transforms.RandomHorizontalFlip(),
+    transforms.RandomHorizontalFlip(),        
+    transforms.CenterCrop(image_size),
+            
 ]
 
 # Experiment metadata
