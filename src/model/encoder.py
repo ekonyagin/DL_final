@@ -1,5 +1,6 @@
 import torch.nn as nn
-import torch.functional as F
+import torch.nn.functional as F
+from encoder_utils import get_y_thetas
 
 
 class ResBlock2d(nn.Module):
@@ -111,12 +112,14 @@ class HoloEncoder(nn.Module):
         out = F.grid_sample(x, grid, padding_mode='zeros')
         return out
 
-    def forward(self, x, thetas):
+    def forward(self, x, angles):
         '''
             x: batch of images of shape (Bs, c, h, w)
             thetas : Transform matricies, must be (Bs, 3, 4) = [R|t]
         '''
         bs = x.size(0)
+        thetas = get_y_thetas(angles)
+
         x = self.res_conv1(x)  # -> (bs, 128, 128, 128)
         x = self.res_conv2(x)  # -> (bs, 128*nf, 128, 128)
 
@@ -203,11 +206,12 @@ class HoloEncoderLight(nn.Module):
         out = F.grid_sample(x, grid, padding_mode='zeros')
         return out
 
-    def forward(self, x, thetas):
+    def forward(self, x, angles):
         '''
             x: batch of images of shape (Bs, c, h, w)
-            thetas : Transform matrix, must be (Bs, 3, 4) = [R|t]
+            angles : batch of y angles
         '''
+        thetas = get_y_thetas(angles)
         bs = x.size(0)
         x = self.conv1(x)  # -> (bs, 128, 128, 128)
         x = self.conv2(x)  # -> (bs, 128*nf, 128, 128)
