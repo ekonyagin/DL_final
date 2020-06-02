@@ -48,30 +48,27 @@ def train(model: nn.Module,
         enc_opt.zero_grad()
         
         #rotated_images
-        image_batch = next(loader).cuda()
-        image_batch.requires_grad_()
+        
+        
         noise = torch.FloatTensor(batch_size, image_size, image_size, 1).uniform_(0., 1.).cuda()
         thetas = torch.randint(-30,30, size=(batch_size,)).type(torch.float32)
-        w_styles = encoder(image_batch, thetas)
+        w_styles = encoder(images, thetas)
         
         generated_images = stylegan.G(w_styles, noise)
         fake_output, fake_q_loss = stylegan.D(generated_images.clone().detach())
         
         #identity transform
-        image_batch = next(loader).cuda()
-        image_batch.requires_grad_()
         noise = torch.FloatTensor(batch_size, image_size, image_size, 1).uniform_(0., 1.).cuda()
         thetas = torch.zeros(batch_size)
-        w_styles = encoder(image_batch, thetas)
+        w_styles = encoder(images, thetas)
         
         generated_images = stylegan.G(w_styles, noise)
         
-        id_loss = id_loss_fn(generated_images, image_batch)
+        id_loss = id_loss_fn(generated_images, images)
         
         ######real_images#######
-        image_batch = next(loader).cuda()
-        image_batch.requires_grad_()
-        real_output, real_q_loss = stylegan.D(image_batch)
+        
+        real_output, real_q_loss = stylegan.D(images)
 
         disc_loss = (F.relu(1 + real_output) + F.relu(1 - fake_output)).mean()
         
@@ -83,9 +80,7 @@ def train(model: nn.Module,
         
         disc_loss.register_hook(raise_if_nan)
         
-        total_disc_loss = disc_loss.detach().item() 
-
-        #self.d_loss = float(total_disc_loss)
+        total_disc_loss = disc_loss.detach().item()
         
         disc_loss.backward()
         enc_opt.step()
