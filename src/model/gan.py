@@ -9,8 +9,13 @@ class HoloStyleGAN(nn.Module):
         self.stylegan = StyleGAN2(**stylegan_params)
 
 
-    def forward(self, images: torch.Tensor):
-        return x
+    def forward(self, images: torch.Tensor, angles=None):
+        """
+        angles : list of length=batch_size, consisting of angles for img rotation
+        """
+        if angles==None:
+            angles = [0.0 for _ in range(img.shape[0])
+        return stylegan(encoder(images, angles))
 
     def compute_loss(self):
         pass
