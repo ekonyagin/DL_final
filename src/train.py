@@ -14,11 +14,12 @@ if __name__ == '__main__':
     experiment.save()
     artifacts = ['model', 'disc_opt', 'enc_opt']
 
-    model = HoloStyleGAN(cfg.ENCODER_PARAMETERS, cfg.STYLEGAN_PARAMETERS)
-    
+    model = HoloStyleGAN(cfg.ENCODER_CLASS,
+                         cfg.ENCODER_PARAMETERS, cfg.STYLEGAN_PARAMETERS)
+
     disc_opt = cfg.D_OPT(model.stylegan.D.parameters())
     enc_opt = cfg.ENC_OPT(model.encoder.parameters())
-    
+
     for artifact in artifacts:
         prepare(globals()[artifact], artifact)
 

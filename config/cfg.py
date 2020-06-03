@@ -3,22 +3,24 @@ from pathlib import Path
 
 import torch
 from torchvision import transforms
-
+from model.encoder import HoloEncoder, HoloEncoderLight 
 #################################### Experiment setup ####################################
 
 # Hyperparams
 
-N_ITERATIONS = 10000
-SAMPLE_EVERY = 1000
-SAVE_EVERY = 1000
-BATCH_SIZE = 2
+N_ITERATIONS = 4
+SAMPLE_EVERY = 2
+SAVE_EVERY = 3
+BATCH_SIZE = 1
 
 ENC_OPT = lambda parameters: torch.optim.Adam(parameters, 1e-3, weight_decay=0)
 D_OPT = lambda parameters: torch.optim.Adam(parameters, 1e-3, weight_decay=0)
 
+ENCODER_CLASS = HoloEncoderLight
+
 ###log_shape must be equal to log2(img_shape) - 1 !!!#####
 ENCODER_PARAMETERS = {
-    "nf" : 16,
+    "nf" : 8,
     "log_shape": 6
 }
 
