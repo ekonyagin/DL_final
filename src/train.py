@@ -6,6 +6,7 @@ from src.model.stylegan_no_gen_training import StyleGAN2
 from src.utils import experiment
 from src.utils.loaders import make_loader
 from src.utils.stages import train, test, sample
+from tensorboardX import SummaryWriter
 from tqdm import tqdm
 
 
@@ -25,6 +26,7 @@ if __name__ == '__main__':
     train_iter = iter(train_loader)
     val_loader = make_loader('val')
 
+    writer = SummaryWriter(logdir=cfg.LOGDIR)
     for it in tqdm(range(cfg.N_ITERATIONS)):
         try:
             images = next(train_iter).to(cfg.DEVICE)
@@ -32,8 +34,17 @@ if __name__ == '__main__':
             train_iter = iter(train_loader)
             images = next(train_iter).to(cfg.DEVICE)
 
-        train(model, enc_opt, disc_opt, images, it)
-        test(model, val_loader)
+        d_loss, rot0_loss, q_loss = train(model, enc_opt, disc_opt, images, it)
+        writer.add_scalar('Discriminator Loss', d_loss, it)
+        writer.add_scalar('Rot0 Loss', rot0_loss, it)
+        writer.add_scalar('Quantize Loss', q_loss, it)
+        writer.add_scalars('combined', {
+            'd_loss' : d_loss,
+            'rot0_loss' :  rot0_loss,
+            'q_loss' : q_loss
+            }, it)
+
+        # test(model, val_loader)
         
         if (it + 1) % cfg.SAMPLE_EVERY == 0:
             sample(model, val_loader)

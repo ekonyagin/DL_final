@@ -1,8 +1,9 @@
 import torch
 from torch import nn
 from torchvision.transforms import ToPILImage
-from tqdm import tqdm
+# from tqdm import tqdm
 import torch.nn.functional as F
+# from tensorboardX import SummaryWriter
 
 from config import cfg
 
@@ -35,7 +36,7 @@ def train(model: nn.Module,
     
     STEPS = current_iteration
     
-    id_loss_fn = nn.L1Loss()
+    rot0_loss_fn = nn.L1Loss()
 
     # the following is to prevent StopIteration exception
     # try:
@@ -73,19 +74,19 @@ def train(model: nn.Module,
     
     generated_images = stylegan.G(w_styles, noise)
     
-    id_loss = id_loss_fn(generated_images, images)
+    rot0_loss = rot0_loss_fn(generated_images, images)
     
     ######real_images#######
     
     real_output, real_q_loss = stylegan.D(images)
 
-    disc_loss = (F.relu(1 + real_output) + F.relu(1 - fake_output)).mean()
+    disc_real_loss = (F.relu(1 + real_output) + F.relu(1 - fake_output)).mean()
     
 
     quantize_loss = (fake_q_loss + real_q_loss).mean()
     q_loss = float(quantize_loss.detach().item())
 
-    disc_loss = disc_loss + quantize_loss + id_loss
+    disc_loss = disc_real_loss + quantize_loss + rot0_loss
     
     # disc_loss.register_hook(raise_if_nan)
     
@@ -122,7 +123,7 @@ def train(model: nn.Module,
     """
     # STEPS += 1
     #self.av = None
-
+    return disc_real_loss.item(), rot0_loss.item(), quantize_loss.item() 
 
 def test(model: nn.Module, loader: torch.utils.data.dataloader.DataLoader):
     model.eval()

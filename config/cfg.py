@@ -54,7 +54,7 @@ ROOT_DIR = Path(os.environ['ROOT_DIR'])
 print(ROOT_DIR)
 # Input data
 
-DATA_ROOT = ROOT_DIR / 'data'
+DATA_ROOT =  ROOT_DIR / 'data' 
 TRAIN_ROOT = DATA_ROOT / 'train'
 VAL_ROOT = DATA_ROOT / 'val'
 TEST_ROOT = DATA_ROOT / 'test'
@@ -66,3 +66,4 @@ SAMPLES_ROOT = RESULTS_ROOT / 'samples'
 SAMPLES_ROOT.mkdir(parents=True, exist_ok=True)
 CHECKPOINTS_ROOT = RESULTS_ROOT / 'checkpoints'
 CHECKPOINTS_ROOT.mkdir(parents=True, exist_ok=True)
+LOGDIR = RESULTS_ROOT / 'logdir'
