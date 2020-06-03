@@ -9,7 +9,9 @@ from config import cfg
 
 def train(model: nn.Module,
           enc_opt: torch.optim, gan_opt: torch.optim, 
-          loader: torch.utils.data.dataloader.DataLoader, save_every=1000):
+          images,
+          current_iteration: int,
+          save_every=1000):
     """
     Conducts training of HoloEncoder and StyleGAN2 discriminators in three modes:
      - pass real images directly to discriminator
@@ -18,7 +20,8 @@ def train(model: nn.Module,
     
     Inputs: encoder - nn.Module HoloEncoder, stylegan - nn.Module StyleGAN with frozen generator, 
     enc_opt - torch.optim optimizer for encoder, gan_opt - torch.optim optimizer for discriminator, 
-    loader - torch.utils.data.dataloader.DataLoader,
+    loader - iter(torch.utils.data.dataloader.DataLoader),
+    ,
     save_every - int (optional) frequency of checkpoints saving
     for images loading
     """
@@ -30,90 +33,95 @@ def train(model: nn.Module,
     stylegan.D.train()
     stylegan.G.eval()
     
-    STEPS = 0
+    STEPS = current_iteration
     
     id_loss_fn = nn.L1Loss()
+
+    # the following is to prevent StopIteration exception
+    # try:
+    #     images = next(iterator).to(cfg.DEVICE)
+    # except StopIteration:
+    #     iterator = iter
+
+    # images = imgaes.to(cfg.DEVICE)
+    total_disc_loss = torch.tensor(0.).cuda()
+    total_gen_loss = torch.tensor(0.).cuda()
+
+    batch_size = images.shape[0]
+
+    image_size = stylegan.G.image_size
+    latent_dim = stylegan.G.latent_dim
+    num_layers = stylegan.G.num_layers
+
+    gan_opt.zero_grad()
+    enc_opt.zero_grad()
     
-    for images in tqdm(loader):
-        images = images.to(cfg.DEVICE)
-        total_disc_loss = torch.tensor(0.).cuda()
-        total_gen_loss = torch.tensor(0.).cuda()
+    #rotated_images
+    
+    
+    noise = torch.FloatTensor(batch_size, image_size, image_size, 1).uniform_(0., 1.).cuda()
+    thetas = torch.randint(-30,30, size=(batch_size,)).type(torch.float32) #.to(cfg.DEVICE)
+    w_styles = encoder(images, thetas)
 
-        batch_size = images.shape[0]
+    generated_images = stylegan.G(w_styles, noise)
+    fake_output, fake_q_loss = stylegan.D(generated_images.clone().detach())
+    
+    #identity transform
+    noise = torch.FloatTensor(batch_size, image_size, image_size, 1).uniform_(0., 1.).cuda()
+    thetas = torch.zeros(batch_size)
+    w_styles = encoder(images, thetas)
+    
+    generated_images = stylegan.G(w_styles, noise)
+    
+    id_loss = id_loss_fn(generated_images, images)
+    
+    ######real_images#######
+    
+    real_output, real_q_loss = stylegan.D(images)
 
-        image_size = stylegan.G.image_size
-        latent_dim = stylegan.G.latent_dim
-        num_layers = stylegan.G.num_layers
+    disc_loss = (F.relu(1 + real_output) + F.relu(1 - fake_output)).mean()
+    
 
-        gan_opt.zero_grad()
-        enc_opt.zero_grad()
-        
-        #rotated_images
-        
-        
-        noise = torch.FloatTensor(batch_size, image_size, image_size, 1).uniform_(0., 1.).cuda()
-        thetas = torch.randint(-30,30, size=(batch_size,)).type(torch.float32) #.to(cfg.DEVICE)
-        w_styles = encoder(images, thetas)
-        
-        generated_images = stylegan.G(w_styles, noise)
-        fake_output, fake_q_loss = stylegan.D(generated_images.clone().detach())
-        
-        #identity transform
-        noise = torch.FloatTensor(batch_size, image_size, image_size, 1).uniform_(0., 1.).cuda()
-        thetas = torch.zeros(batch_size)
-        w_styles = encoder(images, thetas)
-        
-        generated_images = stylegan.G(w_styles, noise)
-        
-        id_loss = id_loss_fn(generated_images, images)
-        
-        ######real_images#######
-        
-        real_output, real_q_loss = stylegan.D(images)
+    quantize_loss = (fake_q_loss + real_q_loss).mean()
+    q_loss = float(quantize_loss.detach().item())
 
-        disc_loss = (F.relu(1 + real_output) + F.relu(1 - fake_output)).mean()
-        
+    disc_loss = disc_loss + quantize_loss + id_loss
+    
+    # disc_loss.register_hook(raise_if_nan)
+    
+    total_disc_loss = disc_loss.detach().item()
+    
+    disc_loss.backward()
+    enc_opt.step()
+    gan_opt.step()
+    
+    generated_images = stylegan.G(w_styles, noise)
 
-        quantize_loss = (fake_q_loss + real_q_loss).mean()
-        q_loss = float(quantize_loss.detach().item())
+    if STEPS % 10 == 0 and STEPS > 20000:
+        stylegan.EMA()
 
-        disc_loss = disc_loss + quantize_loss + id_loss
+    if STEPS <= 25000 and STEPS % 1000 == 2:
+        stylegan.reset_parameter_averaging()
         
-        # disc_loss.register_hook(raise_if_nan)
-        
-        total_disc_loss = disc_loss.detach().item()
-        
-        disc_loss.backward()
-        enc_opt.step()
-        gan_opt.step()
-        
-        generated_images = stylegan.G(w_styles, noise)
+    ##########PLACEHOLDER FOR SAVING##########
+    #if STEPS % save_every == 0:
+    #    torch.save(model.state_dict(), self.model_name(num))
+    
+    #checkpoint_num = floor(STEPS / self.save_every)
+    """
+    if torch.isnan(total_disc_loss):
+        print(f'NaN detected for discriminator. Loading from checkpoint #{checkpoint_num}')
+        self.load(checkpoint_num)
+        raise NanException
 
-        if STEPS % 10 == 0 and STEPS > 20000:
-            stylegan.EMA()
+    periodically save results
+    
 
-        if STEPS <= 25000 and STEPS % 1000 == 2:
-            stylegan.reset_parameter_averaging()
-            
-        ##########PLACEHOLDER FOR SAVING##########
-        #if STEPS % save_every == 0:
-        #    torch.save(model.state_dict(), self.model_name(num))
-        
-        #checkpoint_num = floor(STEPS / self.save_every)
-        """
-        if torch.isnan(total_disc_loss):
-            print(f'NaN detected for discriminator. Loading from checkpoint #{checkpoint_num}')
-            self.load(checkpoint_num)
-            raise NanException
-
-        periodically save results
-        
-
-        if self.steps % 1000 == 0 or (self.steps % 100 == 0 and self.steps < 2500):
-            self.evaluate(floor(self.steps / 1000))
-        """
-        STEPS += 1
-        #self.av = None
+    if self.steps % 1000 == 0 or (self.steps % 100 == 0 and self.steps < 2500):
+        self.evaluate(floor(self.steps / 1000))
+    """
+    # STEPS += 1
+    #self.av = None
 
 
 def test(model: nn.Module, loader: torch.utils.data.dataloader.DataLoader):

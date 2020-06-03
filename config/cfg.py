@@ -8,9 +8,9 @@ from torchvision import transforms
 
 # Hyperparams
 
-N_EPOCHS = 1
-SAMPLE_EVERY = 1
-SAVE_EVERY = 1
+N_ITERATIONS = 10000
+SAMPLE_EVERY = 1000
+SAVE_EVERY = 1000
 BATCH_SIZE = 2
 
 ENC_OPT = lambda parameters: torch.optim.Adam(parameters, 1e-3, weight_decay=0)
@@ -39,7 +39,7 @@ TRAIN_TRANSFORM = [
 
 # Experiment metadata
 
-EXPERIMENT_TAG = 'holoencoder_stylegan_celeba' # Tag used for associated files
+EXPERIMENT_TAG = 'holoencoder_stylegan_celeba_iterations' # Tag used for associated files
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
 # Reproducibility

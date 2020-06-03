@@ -22,15 +22,22 @@ if __name__ == '__main__':
         prepare(globals()[artifact], artifact)
 
     train_loader = make_loader('train')
+    train_iter = iter(train_loader)
     val_loader = make_loader('val')
 
-    for epoch in tqdm(range(cfg.N_EPOCHS)):
-        train(model, enc_opt, disc_opt, train_loader)
+    for it in tqdm(range(cfg.N_ITERATIONS)):
+        try:
+            images = next(train_iter).to(cfg.DEVICE)
+        except StopIteration:
+            train_iter = iter(train_loader)
+            images = next(train_iter).to(cfg.DEVICE)
+
+        train(model, enc_opt, disc_opt, images, it)
         test(model, val_loader)
         
-        if (epoch + 1) % cfg.SAMPLE_EVERY == 0:
+        if (it + 1) % cfg.SAMPLE_EVERY == 0:
             sample(model, val_loader)
-        if (epoch + 1) % cfg.SAVE_EVERY == 0:
+        if (it + 1) % cfg.SAVE_EVERY == 0:
             for artifact in artifacts:
                 save(globals()[artifact], artifact)
 
