@@ -1,5 +1,7 @@
 import torch
 from torch import nn
+from .encoder import HoloEncoderLight as Encoder
+from .stylegan_no_gen_training import StyleGAN2
 
 
 class HoloStyleGAN(nn.Module):
@@ -14,7 +16,7 @@ class HoloStyleGAN(nn.Module):
         angles : list of length=batch_size, consisting of angles for img rotation
         """
         if angles==None:
-            angles = [0.0 for _ in range(img.shape[0])
+            angles = [0.0 for _ in range(img.shape[0])]
         return stylegan.G(encoder(images, angles))
 
     def compute_loss(self):

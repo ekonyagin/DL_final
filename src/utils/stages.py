@@ -2,6 +2,7 @@ import torch
 from torch import nn
 from torchvision.transforms import ToPILImage
 from tqdm import tqdm
+import torch.nn.functional as F
 
 from config import cfg
 
@@ -34,7 +35,7 @@ def train(model: nn.Module,
     id_loss_fn = nn.L1Loss()
     
     for images in tqdm(loader):
-        images.to(cfg.DEVICE)
+        images = images.to(cfg.DEVICE)
         total_disc_loss = torch.tensor(0.).cuda()
         total_gen_loss = torch.tensor(0.).cuda()
 
@@ -51,7 +52,7 @@ def train(model: nn.Module,
         
         
         noise = torch.FloatTensor(batch_size, image_size, image_size, 1).uniform_(0., 1.).cuda()
-        thetas = torch.randint(-30,30, size=(batch_size,)).type(torch.float32)
+        thetas = torch.randint(-30,30, size=(batch_size,)).type(torch.float32) #.to(cfg.DEVICE)
         w_styles = encoder(images, thetas)
         
         generated_images = stylegan.G(w_styles, noise)
@@ -74,11 +75,11 @@ def train(model: nn.Module,
         
 
         quantize_loss = (fake_q_loss + real_q_loss).mean()
-        self.q_loss = float(quantize_loss.detach().item())
+        q_loss = float(quantize_loss.detach().item())
 
         disc_loss = disc_loss + quantize_loss + id_loss
         
-        disc_loss.register_hook(raise_if_nan)
+        # disc_loss.register_hook(raise_if_nan)
         
         total_disc_loss = disc_loss.detach().item()
         
@@ -86,7 +87,7 @@ def train(model: nn.Module,
         enc_opt.step()
         gan_opt.step()
         
-        generated_images = self.GAN.G(w_styles, noise)
+        generated_images = stylegan.G(w_styles, noise)
 
         if STEPS % 10 == 0 and STEPS > 20000:
             stylegan.EMA()

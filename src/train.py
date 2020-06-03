@@ -6,15 +6,16 @@ from src.model.stylegan_no_gen_training import StyleGAN2
 from src.utils import experiment
 from src.utils.loaders import make_loader
 from src.utils.stages import train, test, sample
+from tqdm import tqdm
 
 
 if __name__ == '__main__':
     experiment.save()
-    artifacts = ['gan', 'g_opt', 'd_opt']
+    artifacts = ['model', 'disc_opt', 'enc_opt']
 
-    model = HoloStyleGAN(cfg.ENCODER_PARAMETERS, cfg.MODEL_PARAMETERS)
+    model = HoloStyleGAN(cfg.ENCODER_PARAMETERS, cfg.STYLEGAN_PARAMETERS)
     
-    disc_opt = cfg.D_OPT(model.stylegan.discriminator.parameters())
+    disc_opt = cfg.D_OPT(model.stylegan.D.parameters())
     enc_opt = cfg.ENC_OPT(model.encoder.parameters())
     
     for artifact in artifacts:
@@ -23,11 +24,13 @@ if __name__ == '__main__':
     train_loader = make_loader('train')
     val_loader = make_loader('val')
 
-    for epoch in range(cfg.N_EPOCHS):
+    for epoch in tqdm(range(cfg.N_EPOCHS)):
         train(model, enc_opt, disc_opt, train_loader)
         test(model, val_loader)
+        
+        if (epoch + 1) % cfg.SAMPLE_EVERY == 0:
+            sample(model, val_loader)
+        if (epoch + 1) % cfg.SAVE_EVERY == 0:
+            for artifact in artifacts:
+                save(globals()[artifact], artifact)
 
-        sample(model, val_loader)
-
-        for artifact in artifacts:
-            save(globals()[artifact], artifact)

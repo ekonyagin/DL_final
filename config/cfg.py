@@ -8,14 +8,17 @@ from torchvision import transforms
 
 # Hyperparams
 
-N_EPOCHS = 100
-BATCH_SIZE = 64
+N_EPOCHS = 1
+SAMPLE_EVERY = 1
+SAVE_EVERY = 1
+BATCH_SIZE = 2
 
 ENC_OPT = lambda parameters: torch.optim.Adam(parameters, 1e-3, weight_decay=0)
 D_OPT = lambda parameters: torch.optim.Adam(parameters, 1e-3, weight_decay=0)
 
 ###log_shape must be equal to log2(img_shape) - 1 !!!#####
 ENCODER_PARAMETERS = {
+    "nf" : 16,
     "log_shape": 6
 }
 
@@ -36,7 +39,7 @@ TRAIN_TRANSFORM = [
 
 # Experiment metadata
 
-EXPERIMENT_TAG = 'efficient_net_unfreeze_adam_lr=1e-3_l2=1e-6_aug_no_crop_new_data_add_bg' # Tag used for associated files
+EXPERIMENT_TAG = 'holoencoder_stylegan_celeba' # Tag used for associated files
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
 # Reproducibility

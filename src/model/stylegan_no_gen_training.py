@@ -384,9 +384,9 @@ class Generator(nn.Module):
             self.blocks.append(block)
 
     def forward(self, styles, input_noise):
-        if self.show_style_shape == True:
-            self.show_style_shape = False
-            print("Specially for Misha pechatayu razmer:", styles.shape)
+        # if self.show_style_shape == True:
+        #    self.show_style_shape = False
+        #    print("Specially for Misha pechatayu razmer:", styles.shape)
         batch_size = styles.shape[0]
         image_size = self.image_size
         x = self.initial_block.expand(batch_size, -1, -1, -1)

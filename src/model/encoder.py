@@ -1,7 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from encoder_utils import get_y_thetas
-
+from .encoder_utils import get_y_thetas
 
 class ResBlock2d(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size=3, dilation=1):
@@ -19,8 +18,8 @@ class ResBlock2d(nn.Module):
         self.relu = nn.LeakyReLU()
         self.bn2 = nn.InstanceNorm2d(out_ch)
 
-        nn.init.xavier_uniform(self.conv1.weight.data, 1.)
-        nn.init.xavier_uniform(self.conv2.weight.data, 1.)
+        nn.init.xavier_uniform_(self.conv1.weight.data, 1.)
+        nn.init.xavier_uniform_(self.conv2.weight.data, 1.)
 
         bypass = []
         if in_ch != out_ch:
@@ -47,8 +46,8 @@ class ResBlock3d(nn.Module):
         self.relu = nn.LeakyReLU()
         self.bn2 = nn.InstanceNorm3d(out_ch)
 
-        nn.init.xavier_uniform(self.conv1.weight.data, 1.)
-        nn.init.xavier_uniform(self.conv2.weight.data, 1.)
+        nn.init.xavier_uniform_(self.conv1.weight.data, 1.)
+        nn.init.xavier_uniform_(self.conv2.weight.data, 1.)
 
         bypass = []
         if in_ch != out_ch:
@@ -108,8 +107,10 @@ class HoloEncoder(nn.Module):
         # theta must be (Bs, 3, 4) = [R|t]
         # theta = theta.view(-1, 2, 3)
 
-        grid = F.affine_grid(theta, x.size())
-        out = F.grid_sample(x, grid, padding_mode='zeros')
+        grid = F.affine_grid(theta, x.size(), align_corners=False) #.to(cfg.DEVICE)
+        grid = grid.to(x.device)
+        
+        out = F.grid_sample(x, grid, padding_mode='zeros', align_corners=False)
         return out
 
     def forward(self, x, angles):
@@ -118,7 +119,9 @@ class HoloEncoder(nn.Module):
             thetas : Transform matricies, must be (Bs, 3, 4) = [R|t]
         '''
         bs = x.size(0)
-        thetas = get_y_thetas(angles)
+
+        # TODO Make support for angles allocated on gpu
+        thetas = get_y_thetas(angles).to(x.device)
 
         x = self.res_conv1(x)  # -> (bs, 128, 128, 128)
         x = self.res_conv2(x)  # -> (bs, 128*nf, 128, 128)
@@ -203,8 +206,8 @@ class HoloEncoderLight(nn.Module):
         # theta must be (Bs, 3, 4) = [R|t]
         # theta = theta.view(-1, 2, 3)
 
-        grid = F.affine_grid(theta, x.size())
-        out = F.grid_sample(x, grid, padding_mode='zeros')
+        grid = F.affine_grid(theta, x.size(), align_corners=False).to(x.device)
+        out = F.grid_sample(x, grid, padding_mode='zeros', align_corners=False)
         return out
 
     def forward(self, x, angles):
