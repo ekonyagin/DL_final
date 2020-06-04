@@ -15,8 +15,14 @@ if __name__ == '__main__':
     artifacts = ['model', 'disc_opt', 'enc_opt']
 
     model = HoloStyleGAN(cfg.ENCODER_CLASS,
-                         cfg.ENCODER_PARAMETERS, cfg.STYLEGAN_PARAMETERS)
-
+                         cfg.ENCODER_PARAMETERS, cfg.STYLEGAN_PARAMETERS,
+                         load_path=cfg.STYLEGAN_CHECKPOINT_PATH)
+    
+    #if STYLEGAN_CHECKPOINT_PATH:
+        # sg = StyleGAN2(cfg.STYLEGAN_PARAMETERS)
+        # sg.load_state_dict
+     #   model.G.load_state_dict(torch.load(STYLEGAN_CHECKPOINT_PATH))
+      #  model.D.load_state_dice(torch.load(STYLEGAN_CHECKPOINT_PATH))
     disc_opt = cfg.D_OPT(model.stylegan.D.parameters())
     enc_opt = cfg.ENC_OPT(model.encoder.parameters())
 
@@ -48,8 +54,11 @@ if __name__ == '__main__':
         # test(model, val_loader)
         
         if (it + 1) % cfg.SAMPLE_EVERY == 0:
-            sample(model, val_loader)
+            samples = sample(model, val_loader, it, return_img=True)
+            writer.add_image('Samples', samples, it)
+
         if (it + 1) % cfg.SAVE_EVERY == 0:
             for artifact in artifacts:
                 save(globals()[artifact], artifact)
+    writer.close()
 

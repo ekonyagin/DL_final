@@ -5,10 +5,14 @@ from .stylegan_no_gen_training import StyleGAN2
 
 
 class HoloStyleGAN(nn.Module):
-    def __init__(self, enc_class, enc_params, stylegan_params):
+    def __init__(self, enc_class, enc_params, stylegan_params, load_path=''):
         super().__init__()
         self.encoder = enc_class(**enc_params)
         self.stylegan = StyleGAN2(**stylegan_params)
+
+        if load_path:
+            self.stylegan.load_state_dict(torch.load(load_path)) 
+            print('Checkpoints for StyleGAN2 loaded successfully.')
 
     def forward(self, images: torch.Tensor, angles=None):
         """

@@ -90,17 +90,18 @@ class HoloEncoder(nn.Module):
 
         # TODO: should be 1x1
         self.proj = nn.Sequential(
-            nn.Conv2d(pnf, pnf // 2, kernel_size=3, padding=1),
-            nn.InstanceNorm2d(pnf // 2, affine=True),
+            nn.Conv2d((nf // 4) * 128, (nf // 8) * 128, kernel_size=3, padding=1),
+            nn.InstanceNorm2d((nf // 8) * 128, affine=True),
             nn.ReLU()
         )
 
-        self.res_conv3 = ResBlock2d(pnf // 2, 512)
-        self.res_conv4 = ResBlock2d(512, 512)
-        self.res_conv5 = ResBlock2d(512, 512)
+        self.res_conv3 = ResBlock2d((nf // 8) * 128, (nf // 8) * 128)
+        self.res_conv4 = ResBlock2d((nf // 8) * 128, (nf // 8) * 128)
+        self.res_conv5 = ResBlock2d((nf // 8) * 128, (nf // 8) * 128) 
+        self.res_conv6 = ResBlock2d((nf // 8) * 128, (nf // 8) * 128) 
 
         self.fc = nn.Sequential(
-            nn.Linear(512 * 16 * 16, self.log_shape * 512)
+            nn.Linear( (nf // 8) * 128 * 8 * 8, self.log_shape * 512)
         )
 
     def stn(self, x, theta):
@@ -148,7 +149,11 @@ class HoloEncoder(nn.Module):
 
         x = self.res_conv5(x)  # -> (bs, 512, 32, 32) NO DILATIONS, KS=3
         x = F.avg_pool2d(x, 2)  # -> (bs, 512, 16, 16)
+
+        x = self.res_conv6(x)  # -> (bs, 512, 16, 16) NO DILATIONS, KS=3
+        x = F.avg_pool2d(x, 2)  # -> (bs, 512, 8, 8)
         x = x.reshape(bs, -1)
+
 
         x = self.fc(x)  # -> (bs, log_shape * 512)
         latent_code = x.reshape(bs, self.log_shape, 512)

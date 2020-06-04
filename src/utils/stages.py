@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 from torchvision.transforms import ToPILImage
+from torchvision.utils import save_image, make_grid
 # from tqdm import tqdm
 import torch.nn.functional as F
 # from tensorboardX import SummaryWriter
@@ -134,19 +135,42 @@ def test(model: nn.Module, loader: torch.utils.data.dataloader.DataLoader):
             pass
 
 
-def sample(model: nn.Module, loader: torch.utils.data.dataloader.DataLoader):
+def sample(model: nn.Module, loader: torch.utils.data.dataloader.DataLoader,
+           it, return_img=False):
     """
     Samples random rotations of the first batch of images from the loader
     """
 
+    encoder = model.encoder
+    stylegan = model.stylegan
+    encoder.eval()
+    stylegan.D.eval()
+    stylegan.G.eval()
+
+    angles = torch.linspace(-30,30, steps=5, dtype=torch.float32).view(-1, 1)
     images = next(iter(loader))
-    images.to(cfg.DEVICE)
+    # images.to(cfg.DEVICE)
+    batch_size = images.size(0)
+    image_size = images.size(2)
 
-    samples = model(images)
-    for i, (image, sample) in enumerate(zip(images, samples)):
-        # TODO: convert images to pil properly
-        image = ToPILImage()(image.cpu())
-        image.save(cfg.SAMPLES_ROOT / f'{i}_ref.png')
+    # from pdb import set_trace; set_trace()
+    samples = []
+    for image in images:
+        samples.append(image)
+        image = image.to(cfg.DEVICE)
+        noise = torch.FloatTensor(1, image_size, image_size, 1).uniform_(0., 1.).cuda()
+        for angle in angles:
+            w_style = encoder(image[None, ...], angle)            
+            samples.append(stylegan.G(w_style, noise).detach().cpu()[0])
+    
+    samples = torch.stack(samples)
+    save_image(samples, fp=cfg.SAMPLES_ROOT / f'{it}.png', nrow=6, padding=1)
+    if return_img:
+        return make_grid(samples, nrow=6, padding=1)
+     # for i, (image, sample) in enumerate(zip(images, samples)):
+     #   # TODO: convert images to pil properly
+     #   image = ToPILImage()(image.cpu())
+     #   image.save(cfg.SAMPLES_ROOT / f'{i}_ref.png')
 
-        sample = ToPILImage()(sample.cpu())
-        sample.save(cfg.SAMPLES_ROOT / f'{i}.png')
+     #   sample = ToPILImage()(sample.cpu())
+     #   sample.save(cfg.SAMPLES_ROOT / f'{i}.png')

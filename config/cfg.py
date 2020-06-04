@@ -8,24 +8,26 @@ from model.encoder import HoloEncoder, HoloEncoderLight
 
 # Hyperparams
 
-N_ITERATIONS = 4
-SAMPLE_EVERY = 2
-SAVE_EVERY = 3
-BATCH_SIZE = 1
+N_ITERATIONS = 1000
+SAMPLE_EVERY = 100
+SAVE_EVERY = 1000
+BATCH_SIZE = 2
 
 ENC_OPT = lambda parameters: torch.optim.Adam(parameters, 1e-3, weight_decay=0)
 D_OPT = lambda parameters: torch.optim.Adam(parameters, 1e-3, weight_decay=0)
 
-ENCODER_CLASS = HoloEncoderLight
+ENCODER_CLASS = HoloEncoder
 
 ###log_shape must be equal to log2(img_shape) - 1 !!!#####
 ENCODER_PARAMETERS = {
-    "nf" : 8,
+    "nf" : 16,
     "log_shape": 6
 }
 
+
 STYLEGAN_PARAMETERS = {
-    "image_size": 128
+    "image_size": 128,
+    "network_capacity" : 10
 }
 
 TRANSFORM = [
@@ -61,6 +63,10 @@ TRAIN_ROOT = DATA_ROOT / 'train'
 VAL_ROOT = DATA_ROOT / 'val'
 TEST_ROOT = DATA_ROOT / 'test'
 
+# Stylegan Checkpoint
+# if no checkpoint is present - fill with empty string
+STYLEGAN_CHECKPOINT_PATH = ROOT_DIR / 'model_99.pt'
+
 # Results
 
 RESULTS_ROOT = ROOT_DIR / 'results' / EXPERIMENT_TAG
@@ -69,3 +75,5 @@ SAMPLES_ROOT.mkdir(parents=True, exist_ok=True)
 CHECKPOINTS_ROOT = RESULTS_ROOT / 'checkpoints'
 CHECKPOINTS_ROOT.mkdir(parents=True, exist_ok=True)
 LOGDIR = RESULTS_ROOT / 'logdir'
+
+
