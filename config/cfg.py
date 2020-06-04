@@ -8,12 +8,12 @@ from model.encoder import HoloEncoder, HoloEncoderLight
 
 # Hyperparams
 
-N_ITERATIONS = 1000
+N_ITERATIONS = 5000
 SAMPLE_EVERY = 100
 SAVE_EVERY = 1000
 BATCH_SIZE = 2
 
-ENC_OPT = lambda parameters: torch.optim.Adam(parameters, 1e-3, weight_decay=0)
+ENC_OPT = lambda parameters: torch.optim.Adam(parameters, 3e-3, weight_decay=0)
 D_OPT = lambda parameters: torch.optim.Adam(parameters, 1e-3, weight_decay=0)
 
 ENCODER_CLASS = HoloEncoder
@@ -43,7 +43,7 @@ TRAIN_TRANSFORM = [
 
 # Experiment metadata
 
-EXPERIMENT_TAG = 'holoencoder_stylegan_celeba_iterations' # Tag used for associated files
+EXPERIMENT_TAG = 'holoencoder16_stylegan10_ffhq_eopt3e3' # Tag used for associated files
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
 # Reproducibility
@@ -59,8 +59,8 @@ print(ROOT_DIR)
 # Input data
 
 DATA_ROOT =  ROOT_DIR / 'data' 
-TRAIN_ROOT = DATA_ROOT / 'train'
-VAL_ROOT = DATA_ROOT / 'val'
+TRAIN_ROOT = DATA_ROOT / 'ffhq'
+VAL_ROOT = DATA_ROOT / 'ffhq_val'
 TEST_ROOT = DATA_ROOT / 'test'
 
 # Stylegan Checkpoint
