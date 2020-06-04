@@ -431,6 +431,7 @@ class Discriminator(nn.Module):
         self.flatten = Flatten()
         self.to_logit = nn.Linear(latent_dim, 1)
 
+
     def forward(self, x):
         b, *_ = x.shape
 
@@ -492,6 +493,14 @@ class StyleGAN2(nn.Module):
             nn.init.zeros_(block.to_noise2.weight)
             nn.init.zeros_(block.to_noise1.bias)
             nn.init.zeros_(block.to_noise2.bias)
+
+    def freeze_discriminator(self):
+        set_requires_grad(self.D, False)
+        self.D.eval()
+
+    def unfreeze_discriminator(self):
+        set_requires_grad(self.D, train)
+        self.D.train()
 
     def EMA(self):
         ema_inplace_module(self.SE, self.S, self.ema_decay)
