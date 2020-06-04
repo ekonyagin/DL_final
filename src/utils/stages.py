@@ -71,7 +71,7 @@ def train(model: nn.Module,
     rot0_images = stylegan.G(w_styles, noise)
     
     rot0_loss = rot0_loss_fn(rot0_images, images)
-    gen_loss = F.relu(1 + fake_output).mean() + rot0_loss.mean()
+    gen_loss = - (fake_output).mean() + rot0_loss.mean()
     gen_loss.backward()
     enc_opt.step()
 
