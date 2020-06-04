@@ -3,7 +3,8 @@ from pathlib import Path
 
 import torch
 from torchvision import transforms
-from model.encoder import HoloEncoder, HoloEncoderLight 
+from model.encoder import HoloEncoder, HoloEncoderLight
+from torch_optimizer import DiffGrad
 #################################### Experiment setup ####################################
 
 # Hyperparams
@@ -14,7 +15,9 @@ SAVE_EVERY = 1000
 BATCH_SIZE = 2
 
 ENC_OPT = lambda parameters: torch.optim.Adam(parameters, 1e-3, weight_decay=0)
-D_OPT = lambda parameters: torch.optim.Adam(parameters, 1e-3, weight_decay=0)
+#    torch.optim.Adam(parameters, 1e-3, weight_decay=0)
+D_OPT = lambda parameters: DiffGrad(parameters, lr = 1e-3, betas=(0.5, 0.9))
+#    torch.optim.Adam(parameter:s, 1e-4, weight_decay=0)
 
 ENCODER_CLASS = HoloEncoder
 
@@ -49,8 +52,9 @@ TRAIN_TRANSFORM = [
 # data
 # opt pref
 # upd for fixed true gan training
+# dg = DiffGrad for disc optim
 
-EXPERIMENT_TAG = 'upd_h16_s10_ffhq_eopt1e3' # Tag used for associated files
+EXPERIMENT_TAG = 'upd_h16_s10_ffhq_dg_eopt1e3' # Tag used for associated files
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
 # Reproducibility
