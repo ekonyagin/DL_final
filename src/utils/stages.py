@@ -18,7 +18,7 @@ def train(model: nn.Module,
     Conducts training of HoloEncoder and StyleGAN2 discriminators in three modes:
      - pass real images directly to discriminator
      - pass rotated through HoloEncoder vectors to StyleGAN
-     - pass NOT rotated HoloEncoder to StyleGAN and count identity loss (L1 loss)
+     - pass NOT rotated HoloEncoder to StyleGAN and count L1 loss
     
     Inputs: encoder - nn.Module HoloEncoder, stylegan - nn.Module StyleGAN with frozen generator, 
     enc_opt - torch.optim optimizer for encoder, gan_opt - torch.optim optimizer for discriminator, 
@@ -32,7 +32,10 @@ def train(model: nn.Module,
     encoder = model.encoder
     stylegan = model.stylegan
     encoder.train()
-    stylegan.D.train()
+    if cfg.STYLEGAN_FIXD:
+        stylegan.D.eval()
+    else:
+        stylegan.D.train()
     stylegan.G.eval()
     
     STEPS = current_iteration
@@ -95,7 +98,8 @@ def train(model: nn.Module,
     
     disc_loss.backward()
     enc_opt.step()
-    gan_opt.step()
+    if not cfg.STYLEGAN_FIXD:
+        gan_opt.step()
     
     generated_images = stylegan.G(w_styles, noise)
 
