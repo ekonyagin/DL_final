@@ -63,6 +63,9 @@ class ResBlock3d(nn.Module):
         x = self.conv2(x)
         return x + self.bypass(inp)
 
+def set_requires_grad(model, bool):
+    for p in model.parameters():
+        p.requires_grad = bool
 
 class HoloEncoder(nn.Module):
     '''
@@ -113,6 +116,14 @@ class HoloEncoder(nn.Module):
         
         out = F.grid_sample(x, grid, padding_mode='zeros', align_corners=False)
         return out
+
+    def freeze_(self):
+        set_requires_grad(self, False)
+        self.eval()
+
+    def unfreeze_(self):
+        set_requires_grad(self, True)
+        self.train()
 
     def forward(self, x, angles):
         '''

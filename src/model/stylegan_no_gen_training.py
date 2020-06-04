@@ -494,12 +494,12 @@ class StyleGAN2(nn.Module):
             nn.init.zeros_(block.to_noise1.bias)
             nn.init.zeros_(block.to_noise2.bias)
 
-    def freeze_discriminator(self):
+    def freeze_(self):
         set_requires_grad(self.D, False)
         self.D.eval()
 
-    def unfreeze_discriminator(self):
-        set_requires_grad(self.D, train)
+    def unfreeze_(self):
+        set_requires_grad(self.D, True)
         self.D.train()
 
     def EMA(self):
