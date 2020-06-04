@@ -217,6 +217,14 @@ class HoloEncoderLight(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(pnf // 32 * 8 * 8, self.log_shape * 512)
         )
+        
+    def freeze_(self):
+        set_requires_grad(self, False)
+        self.eval()
+
+    def unfreeze_(self):
+        set_requires_grad(self, True)
+        self.train()
 
     def stn(self, x, theta):
         # theta must be (Bs, 3, 4) = [R|t]
