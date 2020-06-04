@@ -79,18 +79,27 @@ def train(model: nn.Module,
     generated_images = stylegan.G(w_styles, noise)
     
     rot0_loss = rot0_loss_fn(generated_images, images)
-    
+   
+    g_loss = (fake_output + rot0_loss).mean()
     ######real_images#######
-    
+ 
+    noise = torch.FloatTensor(batch_size, image_size, image_size, 1).uniform_(0., 1.).cuda()
+    thetas = torch.randint(-30,30, size=(batch_size,)).type(torch.float32) #.to(cfg.DEVICE)
+    w_styles = encoder(images, thetas)
+
+    generated_images = stylegan.G(w_styles, noise)
+    fake_output, fake_q_loss = stylegan.D(generated_images.clone().detach())
+
+
     real_output, real_q_loss = stylegan.D(images)
 
-    disc_real_loss = (F.relu(1 + real_output) + F.relu(1 - fake_output)).mean()
+    disc_loss = (F.relu(1 + real_output) + F.relu(1 - fake_output)).mean()
     
 
     quantize_loss = (fake_q_loss + real_q_loss).mean()
     q_loss = float(quantize_loss.detach().item())
 
-    disc_loss = disc_real_loss + quantize_loss + rot0_loss
+    # disc_loss = disc_real_loss + quantize_loss + rot0_loss
     
     # disc_loss.register_hook(raise_if_nan)
     
@@ -128,7 +137,7 @@ def train(model: nn.Module,
     """
     # STEPS += 1
     #self.av = None
-    return disc_real_loss.item(), rot0_loss.item(), quantize_loss.item() 
+    return disc_loss.item(), rot0_loss.item(), g_loss.item() 
 
 def test(model: nn.Module, loader: torch.utils.data.dataloader.DataLoader):
     model.eval()
