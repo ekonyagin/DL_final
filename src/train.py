@@ -41,14 +41,14 @@ if __name__ == '__main__':
             train_iter = iter(train_loader)
             images = next(train_iter).to(cfg.DEVICE)
 
-        d_loss, rot0_loss, g_loss = train(model, enc_opt, disc_opt, images, it)
+        d_loss, rot0_loss, q_loss = train(model, enc_opt, disc_opt, images, it)
         writer.add_scalar('Discriminator Loss', d_loss, it)
         writer.add_scalar('Rot0 Loss', rot0_loss, it)
-        writer.add_scalar('Generator Loss', g_loss, it)
+        writer.add_scalar('Quantize Loss', q_loss, it)
         writer.add_scalars('combined', {
             'd_loss' : d_loss,
             'rot0_loss' :  rot0_loss,
-            'q_loss' : g_loss
+            'q_loss' : q_loss
             }, it)
 
         # test(model, val_loader)
