@@ -449,7 +449,7 @@ class Discriminator(nn.Module):
         return x.squeeze(), quantize_loss
 
 class StyleGAN2(nn.Module):
-    def __init__(self, image_size, latent_dim = 512, style_depth = 8, network_capacity = 16, transparent = False, fp16 = False, cl_reg = False, steps = 1, lr = 1e-4, fq_layers = [], fq_dict_size = 256, freeze_gen=False):
+    def __init__(self, image_size, latent_dim = 512, style_depth = 8, network_capacity = 16, transparent = False, fp16 = False, cl_reg = False, steps = 1, lr = 1e-4, fq_layers = [], fq_dict_size = 256, freeze_disc=False):
         super().__init__()
         self.lr = lr
         self.steps = steps
@@ -470,7 +470,7 @@ class StyleGAN2(nn.Module):
         set_requires_grad(self.G, False)
         self.G.eval()
 
-        if(freeze_gen==True):
+        if(freeze_disc==True):
             set_requires_grad(self.D, False)
             self.D.eval()
 
