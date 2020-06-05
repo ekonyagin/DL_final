@@ -120,13 +120,15 @@ def train(model: nn.Module,
     
     generated_images = stylegan.G(w_styles, noise)
     
-    rot0_loss = rot0_loss_fn(generated_images, images)
+    rot0_loss = cfg.ROT0_LOSS_COEF * rot0_loss_fn(generated_images, images)
     # g_loss = (fake_output + rot0_loss).mean()
     rot0_loss = rot0_loss.mean()
     rot0_loss.backward()
     enc_opt.step()
     enc_opt.zero_grad()
     
+   #  loss = (fake_loss + rot0_loss).mean()
+
     ######real_images#######
     for _ in range(2):
         noise = torch.FloatTensor(batch_size, image_size, image_size, 1).uniform_(0., 1.).cuda()
