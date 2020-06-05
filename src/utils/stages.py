@@ -5,13 +5,53 @@ from torchvision.utils import save_image, make_grid
 # from tqdm import tqdm
 import torch.nn.functional as F
 # from tensorboardX import SummaryWriter
-
 from config import cfg
 
 
+def sample_images(iterator, loader):
+    try:
+        images = next(iterator).to(cfg.DEVICE)
+    except StopIteration:
+        iterator = iter(loader)
+        images = next(train_iter).to(cfg.DEVICE)
+
+    return images
+
+def gen_iter():
+    noise = torch.FloatTensor(batch_size, image_size, image_size, 1).uniform_(0., 1.).cuda()
+    thetas = torch.randint(-30,30, size=(batch_size,)).type(torch.float32) #.to(cfg.DEVICE)
+    w_styles = encoder(images, thetas)
+
+    generated_images = stylegan.G(w_styles, noise)
+    fake_output, fake_q_loss = stylegan.D(generated_images.clone().detach())
+    g_loss = fake_output.mean()
+    g_loss.backward()
+    enc_opt.step()
+
+def rot0_iter():
+    noise = torch.FloatTensor(batch_size, image_size, image_size, 1).uniform_(0., 1.).cuda()
+    thetas = torch.zeros(batch_size)
+    w_styles = encoder(images, thetas)
+            
+    generated_images = stylegan.G(w_styles, noise)                
+    rot0_loss = rot0_loss_fn(generated_images, images)
+
+
+def disc_iter():
+    noise = torch.FloatTensor(batch_size, image_size, image_size, 1).uniform_(0., 1.).cuda()
+    thetas = torch.randint(-30,30, size=(batch_size,)).type(torch.float32) #.to(cfg.DEVICE)
+    w_styles = encoder(images, thetas)
+
+    generated_images = stylegan.G(w_styles, noise)
+    fake_output, fake_q_loss = stylegan.D(generated_images.clone().detach())
+
+    real_output, real_q_loss = stylegan.D(images)
+    disc_loss = (F.relu(1 + real_output) + F.relu(1 - fake_output)).mean()
+                              
+
 def train(model: nn.Module,
           enc_opt: torch.optim, gan_opt: torch.optim, 
-          images,
+          iterator, loader,
           current_iteration: int,
           save_every=1000):
     """
@@ -43,12 +83,12 @@ def train(model: nn.Module,
     rot0_loss_fn = nn.L1Loss()
 
     # the following is to prevent StopIteration exception
-    # try:
-    #     images = next(iterator).to(cfg.DEVICE)
-    # except StopIteration:
-    #     iterator = iter
+    try:
+        images = next(iterator).to(cfg.DEVICE)
+    except StopIteration:
+        iterator = iter(loader)
+        images = imgaes.to(cfg.DEVICE)
 
-    # images = imgaes.to(cfg.DEVICE)
     total_disc_loss = torch.tensor(0.).cuda()
     total_gen_loss = torch.tensor(0.).cuda()
 
@@ -61,16 +101,18 @@ def train(model: nn.Module,
     gan_opt.zero_grad()
     enc_opt.zero_grad()
     
-    #rotated_images
-    
-    
+    #rotated_images 
     noise = torch.FloatTensor(batch_size, image_size, image_size, 1).uniform_(0., 1.).cuda()
     thetas = torch.randint(-30,30, size=(batch_size,)).type(torch.float32) #.to(cfg.DEVICE)
     w_styles = encoder(images, thetas)
 
     generated_images = stylegan.G(w_styles, noise)
     fake_output, fake_q_loss = stylegan.D(generated_images.clone().detach())
-    
+    g_loss = fake_output.mean()
+    g_loss.backward()
+    enc_opt.step()
+    enc_opt.zero_grad()
+
     #identity transform
     noise = torch.FloatTensor(batch_size, image_size, image_size, 1).uniform_(0., 1.).cuda()
     thetas = torch.zeros(batch_size)
@@ -79,38 +121,40 @@ def train(model: nn.Module,
     generated_images = stylegan.G(w_styles, noise)
     
     rot0_loss = rot0_loss_fn(generated_images, images)
-   
-    g_loss = (fake_output + rot0_loss).mean()
-    ######real_images#######
- 
-    noise = torch.FloatTensor(batch_size, image_size, image_size, 1).uniform_(0., 1.).cuda()
-    thetas = torch.randint(-30,30, size=(batch_size,)).type(torch.float32) #.to(cfg.DEVICE)
-    w_styles = encoder(images, thetas)
-
-    generated_images = stylegan.G(w_styles, noise)
-    fake_output, fake_q_loss = stylegan.D(generated_images.clone().detach())
-
-
-    real_output, real_q_loss = stylegan.D(images)
-
-    disc_loss = (F.relu(1 + real_output) + F.relu(1 - fake_output)).mean()
-    
-
-    quantize_loss = (fake_q_loss + real_q_loss).mean()
-    q_loss = float(quantize_loss.detach().item())
-
-    # disc_loss = disc_real_loss + quantize_loss + rot0_loss
-    
-    # disc_loss.register_hook(raise_if_nan)
-    
-    total_disc_loss = disc_loss.detach().item()
-    
-    disc_loss.backward()
+    # g_loss = (fake_output + rot0_loss).mean()
+    rot0_loss = rot0_loss.mean()
+    rot0_loss.backward()
     enc_opt.step()
-    if not cfg.STYLEGAN_FIXD:
-        gan_opt.step()
+    enc_opt.zero_grad()
     
-    generated_images = stylegan.G(w_styles, noise)
+    ######real_images#######
+    for _ in range(2):
+        noise = torch.FloatTensor(batch_size, image_size, image_size, 1).uniform_(0., 1.).cuda()
+        thetas = torch.randint(-30,30, size=(batch_size,)).type(torch.float32) #.to(cfg.DEVICE)
+        w_styles = encoder(images, thetas)
+
+        generated_images = stylegan.G(w_styles, noise)
+        fake_output, fake_q_loss = stylegan.D(generated_images.clone().detach())
+
+
+        real_output, real_q_loss = stylegan.D(images)
+
+        disc_loss = (F.relu(1 + real_output) + F.relu(1 - fake_output)).mean()
+        disc_loss.backward()
+        gan_opt.step()
+        gan_opt.zero_grad()
+
+    # quantize_loss = (fake_q_loss + real_q_loss).mean()
+    # q_loss = float(quantize_loss.detach().item())
+    # disc_loss = disc_real_loss + quantize_loss + rot0_loss
+    # disc_loss.register_hook(raise_if_nan)
+    # total_disc_loss = disc_loss.detach().item()
+    # disc_loss.backward()
+    # enc_opt.step()
+    # if not cfg.STYLEGAN_FIXD:
+    #    gan_opt.step()
+    
+    # generated_images = stylegan.G(w_styles, noise)
 
     if STEPS % 10 == 0 and STEPS > 20000:
         stylegan.EMA()

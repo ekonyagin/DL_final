@@ -35,13 +35,14 @@ if __name__ == '__main__':
 
     writer = SummaryWriter(logdir=cfg.LOGDIR)
     for it in tqdm(range(cfg.N_ITERATIONS)):
-        try:
-            images = next(train_iter).to(cfg.DEVICE)
-        except StopIteration:
-            train_iter = iter(train_loader)
-            images = next(train_iter).to(cfg.DEVICE)
+        #try:
+        #    images = next(train_iter).to(cfg.DEVICE)
+        #except StopIteration:
+        #    train_iter = iter(train_loader)
+        #    images = next(train_iter).to(cfg.DEVICE)
 
-        d_loss, rot0_loss, g_loss = train(model, enc_opt, disc_opt, images, it)
+        d_loss, rot0_loss, g_loss = train(model, enc_opt,
+                disc_opt, train_iter, train_loader, it)
         writer.add_scalar('Discriminator Loss', d_loss, it)
         writer.add_scalar('Rot0 Loss', rot0_loss, it)
         writer.add_scalar('Generator Loss', g_loss, it)
