@@ -1,4 +1,6 @@
-torch==1.4.0
-torchvision
+torch==1.5.0
+torchvision==0.6.0
 matplotlib
 pillow
+torch_optimizer
+contrastive_learner

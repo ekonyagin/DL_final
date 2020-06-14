@@ -1,6 +1,8 @@
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from .encoder_utils import get_y_thetas
+from .utils import BaseModel
 
 class ResBlock2d(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size=3, dilation=1):
@@ -11,9 +13,9 @@ class ResBlock2d(nn.Module):
         pad_size = int((ks + (ks - 1) * (d - 1) / stride - 1) / 2)
 
         self.conv1 = nn.Conv2d(in_ch, out_ch, kernel_size, stride=1,
-                               padding=pad_size, dilation=dilation)
+                               padding=pad_size, dilation=dilation, bias=False)
         self.conv2 = nn.Conv2d(out_ch, out_ch, kernel_size, stride=1,
-                               padding=pad_size, dilation=dilation)
+                               padding=pad_size, dilation=dilation, bias=False)
         self.bn = nn.InstanceNorm2d(in_ch)
         self.relu = nn.LeakyReLU()
         self.bn2 = nn.InstanceNorm2d(out_ch)
@@ -23,7 +25,7 @@ class ResBlock2d(nn.Module):
 
         bypass = []
         if in_ch != out_ch:
-            bypass.append(nn.Conv2d(in_ch, out_ch, 1, 1))
+            bypass.append(nn.Conv2d(in_ch, out_ch, 1, 1, bias=False))
         self.bypass = nn.Sequential(*bypass)
 
     def forward(self, inp):
@@ -40,8 +42,8 @@ class ResBlock3d(nn.Module):
     def __init__(self, in_ch, out_ch):
         super(ResBlock3d, self).__init__()
 
-        self.conv1 = nn.Conv3d(in_ch, out_ch, 3, 1, padding=1)
-        self.conv2 = nn.Conv3d(out_ch, out_ch, 3, 1, padding=1)
+        self.conv1 = nn.Conv3d(in_ch, out_ch, 3, 1, padding=1, bias=False)
+        self.conv2 = nn.Conv3d(out_ch, out_ch, 3, 1, padding=1, bias=False)
         self.bn = nn.InstanceNorm3d(in_ch)
         self.relu = nn.LeakyReLU()
         self.bn2 = nn.InstanceNorm3d(out_ch)
@@ -51,7 +53,7 @@ class ResBlock3d(nn.Module):
 
         bypass = []
         if in_ch != out_ch:
-            bypass.append(nn.Conv3d(in_ch, out_ch, 1, 1))
+            bypass.append(nn.Conv3d(in_ch, out_ch, 1, 1, bias=False))
         self.bypass = nn.Sequential(*bypass)
 
     def forward(self, inp):
@@ -63,16 +65,13 @@ class ResBlock3d(nn.Module):
         x = self.conv2(x)
         return x + self.bypass(inp)
 
-def set_requires_grad(model, bool):
-    for p in model.parameters():
-        p.requires_grad = bool
 
-class HoloEncoder(nn.Module):
+class HoloEncoder(nn.Module, BaseModel):
     '''
         Encoder made in HoloGAN style.
     '''
 
-    def __init__(self, nf=32, log_shape=6):
+    def __init__(self, lr=1e-3, nf=32, log_shape=6):
         super().__init__()
         self.nf = nf
         self.log_shape = log_shape
@@ -81,10 +80,10 @@ class HoloEncoder(nn.Module):
                                     dilation=2)
 
         self.postproc = nn.Sequential(
-            nn.Conv3d(nf, nf // 2, kernel_size=3, padding=1),
+            nn.Conv3d(nf, nf // 2, kernel_size=3, padding=1, bias=False),
             nn.InstanceNorm3d(nf // 2, affine=True),
             nn.ReLU(),
-            nn.Conv3d(nf // 2, nf // 4, kernel_size=3, padding=1),
+            nn.Conv3d(nf // 2, nf // 4, kernel_size=3, padding=1, bias=False),
             nn.InstanceNorm3d(nf // 4, affine=True),
             nn.ReLU()
         )
@@ -93,7 +92,7 @@ class HoloEncoder(nn.Module):
 
         # TODO: should be 1x1
         self.proj = nn.Sequential(
-            nn.Conv2d((nf // 4) * 128, (nf // 8) * 128, kernel_size=3, padding=1),
+            nn.Conv2d((nf // 4) * 128, (nf // 8) * 128, kernel_size=3, padding=1, bias=False),
             nn.InstanceNorm2d((nf // 8) * 128, affine=True),
             nn.ReLU()
         )
@@ -107,6 +106,8 @@ class HoloEncoder(nn.Module):
             nn.Linear( (nf // 8) * 128 * 8 * 8, self.log_shape * 512)
         )
 
+        self.opt = torch.optim.Adam(self.parameters(), lr)
+
     def stn(self, x, theta):
         # theta must be (Bs, 3, 4) = [R|t]
         # theta = theta.view(-1, 2, 3)
@@ -116,14 +117,6 @@ class HoloEncoder(nn.Module):
         
         out = F.grid_sample(x, grid, padding_mode='zeros', align_corners=False)
         return out
-
-    def freeze_(self):
-        set_requires_grad(self, False)
-        self.eval()
-
-    def unfreeze_(self):
-        set_requires_grad(self, True)
-        self.train()
 
     def forward(self, x, angles):
         '''
@@ -172,7 +165,7 @@ class HoloEncoder(nn.Module):
         return latent_code
 
 
-class HoloEncoderLight(nn.Module):
+class HoloEncoderLight(nn.Module, BaseModel):
     '''
         Lighter version of HoloEncoder.
 
@@ -182,7 +175,7 @@ class HoloEncoderLight(nn.Module):
 
     '''
 
-    def __init__(self, nf=32, log_shape=6):
+    def __init__(self, lr=1e-3, nf=32, log_shape=6):
         super().__init__()
         self.nf = nf
         self.log_shape = log_shape
@@ -191,10 +184,10 @@ class HoloEncoderLight(nn.Module):
         self.conv2 = ResBlock2d(128, self.nf * 128, kernel_size=3, dilation=2)
 
         self.postproc = nn.Sequential(
-            nn.Conv3d(nf, nf // 2, kernel_size=3, padding=1),
+            nn.Conv3d(nf, nf // 2, kernel_size=3, padding=1, bias=False),
             nn.InstanceNorm3d(nf // 2, affine=True),
             nn.ReLU(),
-            nn.Conv3d(nf // 2, nf // 4, kernel_size=3, padding=1),
+            nn.Conv3d(nf // 2, nf // 4, kernel_size=3, padding=1, bias=False),
             nn.InstanceNorm3d(nf // 4, affine=True),
             nn.ReLU(),
         )
@@ -204,7 +197,7 @@ class HoloEncoderLight(nn.Module):
 
         # TODO: should be 1x1
         self.proj = nn.Sequential(
-            nn.Conv2d(pnf, pnf // 2, kernel_size=3, padding=1),
+            nn.Conv2d(pnf, pnf // 2, kernel_size=3, padding=1, bias=False),
             nn.InstanceNorm2d(pnf // 2, affine=True),
             nn.ReLU()
         )
@@ -217,14 +210,8 @@ class HoloEncoderLight(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(pnf // 32 * 8 * 8, self.log_shape * 512)
         )
-        
-    def freeze_(self):
-        set_requires_grad(self, False)
-        self.eval()
 
-    def unfreeze_(self):
-        set_requires_grad(self, True)
-        self.train()
+        self.opt = torch.optim.Adam(self.parameters(), lr)
 
     def stn(self, x, theta):
         # theta must be (Bs, 3, 4) = [R|t]

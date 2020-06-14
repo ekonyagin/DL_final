@@ -17,7 +17,7 @@ def make_loader(stage: str) -> DataLoader:
 
     root = getattr(cfg, stage.upper() + '_ROOT')
 
-    transform = cfg.TRANSFORM
+    transform = cfg.SHARED_TRANSFORM
     shuffle = False
 
     if stage == 'train':
@@ -26,4 +26,4 @@ def make_loader(stage: str) -> DataLoader:
 
     dataset = Images(root, transform=Compose(transform))
 
-    return DataLoader(dataset, batch_size=cfg.BATCH_SIZE, shuffle=shuffle, num_workers=4)
+    return DataLoader(dataset, batch_size=cfg.BATCH_SIZE, shuffle=shuffle, num_workers=1)

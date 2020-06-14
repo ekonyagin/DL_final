@@ -1,57 +1,73 @@
 import os
+import shutil
 from pathlib import Path
 
 import torch
 from torchvision import transforms
-from model.encoder import HoloEncoder, HoloEncoderLight 
+from src.model.encoder import HoloEncoder, HoloEncoderLight
 from torch_optimizer import DiffGrad
 #################################### Experiment setup ####################################
 
-# Hyperparams
+# Experiment setup
 
-N_ITERATIONS = 7000
+CONTINUE = True
+ENCODER_CLASS = HoloEncoder
+DATASET = 'ffhq128'
+# DATASET = 'celeba'
+
+N_ITERATIONS = 70000
 SAMPLE_EVERY = 100
 SAVE_EVERY = 1000
 BATCH_SIZE = 2
+IMG_SIZE = 128
 
-ENC_OPT = lambda parameters: torch.optim.Adam(parameters, 1e-4, weight_decay=0)
-D_OPT = lambda parameters: DiffGrad(parameters, 5e-6)
+# Hyperparams
 
-ENCODER_CLASS = HoloEncoder
+LR_ENC = 1e-3
+LR_STYLEGAN = 1e-4
+
+ROT0_LOSS_COEF = 10
+EMB_LOSS_COEF = 250
+EMB_LOSS_START_ITER = 30000
+
+MIN_ANGLE = -30
+MAX_ANGLE = 30
 
 ###log_shape must be equal to log2(img_shape) - 1 !!!#####
 ENCODER_PARAMETERS = {
-    "nf" : 16,
-    "log_shape": 6
+    "nf": 16,
+    "log_shape": 6,
+    "lr": LR_ENC
 }
-
 
 STYLEGAN_PARAMETERS = {
-    "image_size": 128,
-    "network_capacity" : 16
+    "image_size": IMG_SIZE,
+    "network_capacity": 16,
+    "lr": LR_STYLEGAN / 15 * BATCH_SIZE,
 }
 
-STYLEGAN_FIXD = False
+TRAIN_TRANSFORM = [
+    transforms.CenterCrop(IMG_SIZE),
+    transforms.RandomHorizontalFlip(),
+]
 
-TRANSFORM = [
-    transforms.CenterCrop(STYLEGAN_PARAMETERS['image_size']),
-    # transforms.Resize((128, 128)),
+SHARED_TRANSFORM = [
+    transforms.Resize(IMG_SIZE),
     transforms.ToTensor()
 ]
 
-TRAIN_TRANSFORM = [
-    transforms.RandomHorizontalFlip(),        
-    transforms.CenterCrop(STYLEGAN_PARAMETERS['image_size']),
-            
+trackable_params = [
+    f'{ENCODER_CLASS.__name__}',
+    f'{DATASET}',
+    f'LR_E={ENCODER_PARAMETERS["lr"]:.0E}',
+    f'LR_S={STYLEGAN_PARAMETERS["lr"]:.0E}',
+    f'R={ROT0_LOSS_COEF}',
+    f'E={EMB_LOSS_COEF}',
+    f'NF_E={ENCODER_PARAMETERS["nf"]}'
+    f'E_START={EMB_LOSS_START_ITER}'
 ]
-# Losses coefs
-ROT0_LOSS_COEF = 10
 
-# Experiment metadata
-# nl = new_loss
-# introduced iterations
-
-EXPERIMENT_TAG = 'nl_celeba_h16_s16_dg5e6_eopt1e4_frominit' # Tag used for associated files
+EXPERIMENT_TAG = "__".join(trackable_params)  # Tag used for associated files
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
 # Reproducibility
@@ -63,21 +79,22 @@ torch.backends.cudnn.benchmark = False
 ################################### Environment & stuff ###################################
 
 ROOT_DIR = Path(os.environ['ROOT_DIR'])
-print(ROOT_DIR)
 # Input data
 
-DATA_ROOT =  ROOT_DIR / 'data'
-TRAIN_ROOT = DATA_ROOT / 'train'
+DATA_ROOT = ROOT_DIR / 'data'
+TRAIN_ROOT = DATA_ROOT / ('train_' + DATASET)
 VAL_ROOT = DATA_ROOT / 'val'
 TEST_ROOT = DATA_ROOT / 'test'
 
-# Stylegan Checkpoint
-# if no checkpoint is present - fill with empty string
-STYLEGAN_CHECKPOINT_PATH = '' # ROOT_DIR / 'model_149.pt'
+# Checkpoints
+STYLEGAN_CHECKPOINT_PATH = None # ROOT_DIR / 'model_149.pt'
+EMB_CHECKPOINT_PATH = DATA_ROOT / 'emb_ckpt.pth'
 
 # Results
 
 RESULTS_ROOT = ROOT_DIR / 'results' / EXPERIMENT_TAG
+if not CONTINUE and RESULTS_ROOT.exists():
+    shutil.rmtree(RESULTS_ROOT)
 SAMPLES_ROOT = RESULTS_ROOT / 'samples'
 SAMPLES_ROOT.mkdir(parents=True, exist_ok=True)
 CHECKPOINTS_ROOT = RESULTS_ROOT / 'checkpoints'
