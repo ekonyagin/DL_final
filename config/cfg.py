@@ -15,7 +15,7 @@ ENCODER_CLASS = HoloEncoder
 DATASET = 'ffhq128'
 # DATASET = 'celeba'
 
-N_ITERATIONS = 70000
+N_ITERATIONS = 150000
 SAMPLE_EVERY = 100
 SAVE_EVERY = 1000
 BATCH_SIZE = 2
@@ -23,12 +23,14 @@ IMG_SIZE = 128
 
 # Hyperparams
 
-LR_ENC = 1e-3
+APPLY_NOISE = True
+
+LR_ENC = 1e-4
 LR_STYLEGAN = 1e-4
 
-ROT0_LOSS_COEF = 10
+ROT0_LOSS_COEF = 0
 EMB_LOSS_COEF = 250
-EMB_LOSS_START_ITER = 30000
+EMB_LOSS_START_ITER = 50000
 
 MIN_ANGLE = -30
 MAX_ANGLE = 30
@@ -37,7 +39,7 @@ MAX_ANGLE = 30
 ENCODER_PARAMETERS = {
     "nf": 16,
     "log_shape": 6,
-    "lr": LR_ENC
+    "lr": LR_ENC * BATCH_SIZE
 }
 
 STYLEGAN_PARAMETERS = {
@@ -63,8 +65,8 @@ trackable_params = [
     f'LR_S={STYLEGAN_PARAMETERS["lr"]:.0E}',
     f'R={ROT0_LOSS_COEF}',
     f'E={EMB_LOSS_COEF}',
-    f'NF_E={ENCODER_PARAMETERS["nf"]}'
-    f'E_START={EMB_LOSS_START_ITER}'
+    f'NF_E={ENCODER_PARAMETERS["nf"]}',
+    f'E_START={EMB_LOSS_START_ITER}',
 ]
 
 EXPERIMENT_TAG = "__".join(trackable_params)  # Tag used for associated files

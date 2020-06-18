@@ -25,7 +25,7 @@ if __name__ == '__main__':
     val_loader = make_loader('val')
 
     writer = SummaryWriter(logdir=cfg.LOGDIR)
-    for it in tqdm(range(cfg.N_ITERATIONS)):
+    for it in tqdm(range(experiment.gel_last_iter(), cfg.N_ITERATIONS)):
         d_loss, rot0_loss, g_loss, emb_loss = train_on_batch(model, train_loader, it)
         # writer.add_scalars('All Losses', {
         #     'd_loss': d_loss,

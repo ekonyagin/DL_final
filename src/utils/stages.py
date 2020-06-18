@@ -59,16 +59,21 @@ def train_on_batch(model: nn.Module, loader: torch.utils.data.DataLoader, curren
 
     encoder.train()
 
-    def make_g_forward(images, rotate=True):
-        noise = torch.FloatTensor(cfg.BATCH_SIZE, cfg.IMG_SIZE, cfg.IMG_SIZE, 1).uniform_(0., 1.).to(cfg.DEVICE)
-        if rotate:
-            thetas = torch.randint(cfg.MIN_ANGLE, cfg.MAX_ANGLE, size=(cfg.BATCH_SIZE,)).to(torch.float32)
+    def make_g_forward(images, apply_noise=cfg.APPLY_NOISE, rotate=True):
+        if apply_noise:
+            noise = torch.FloatTensor(cfg.BATCH_SIZE, cfg.IMG_SIZE, cfg.IMG_SIZE, 1).uniform_(0., 1.).to(cfg.DEVICE)
         else:
-            thetas = torch.zeros(cfg.BATCH_SIZE).to(torch.float32)
+            noise = torch.zeros(cfg.BATCH_SIZE, cfg.IMG_SIZE, cfg.IMG_SIZE, 1, dtype=torch.float32, device=cfg.DEVICE)
+        if rotate:
+            thetas = torch.randint(
+                cfg.MIN_ANGLE, cfg.MAX_ANGLE, size=(cfg.BATCH_SIZE,), dtype=torch.float32)
+        else:
+            thetas = torch.zeros(cfg.BATCH_SIZE, dtype=torch.float32)
         w_styles = encoder(images, thetas)
         return stylegan.G(w_styles, noise)
 
-    similarity = nn.L1Loss()
+    rot0_loss_fn = torch.nn.L1Loss()
+    face_similarity_fn = torch.nn.CosineSimilarity(eps=1e-06)
 
     images = next(loader).to(cfg.DEVICE)
 
@@ -76,15 +81,18 @@ def train_on_batch(model: nn.Module, loader: torch.utils.data.DataLoader, curren
     # stylegan.G.unfreeze_()
     # stylegan.D.freeze_()
 
+    stylegan.G.opt.zero_grad()
+    encoder.opt.zero_grad()
+
     # GAN loss
     generated_images = make_g_forward(images)
-    fake_output, fake_q_loss = stylegan.D(generated_images.clone().detach())
+    fake_output, fake_q_loss = stylegan.D(generated_images.detach())
     g_loss = fake_output.mean()
     g_loss.backward()
 
     # Identity L1
-    generated_images = make_g_forward(images, rotate=False)
-    rot0_loss = cfg.ROT0_LOSS_COEF * similarity(generated_images, images)
+    generated_images = make_g_forward(images, apply_noise=False, rotate=False)
+    rot0_loss = cfg.ROT0_LOSS_COEF * rot0_loss_fn(generated_images, images)
     rot0_loss.backward()
 
     # Identity InsightFace
@@ -92,28 +100,31 @@ def train_on_batch(model: nn.Module, loader: torch.utils.data.DataLoader, curren
     emb_loss = torch.tensor(0)
     if current_iteration > cfg.EMB_LOSS_START_ITER:
         emb_original = model.embedder(images)
-        generated_images = make_g_forward(images)
+        generated_images = make_g_forward(images, apply_noise=False)
         emb_generated = model.embedder(generated_images)
-        emb_loss = cfg.EMB_LOSS_COEF * similarity(emb_generated, emb_original)
+        emb_loss = -cfg.EMB_LOSS_COEF * face_similarity_fn(emb_generated, emb_original).mean()
         emb_loss.backward()
 
     # g_loss = g_loss + rot0_loss + emb_loss
     # g_loss.backward()
 
     # Steps
-    encoder.step()
-    stylegan.G.step()
-    
+    stylegan.G.opt.step()
+    encoder.opt.step()
+
     ### Train D ###
     # stylegan.G.freeze_()
     # stylegan.D.unfreeze_()
 
+    stylegan.D.opt.zero_grad()
+
     generated_images = make_g_forward(images)
-    fake_output, fake_q_loss = stylegan.D(generated_images.clone().detach())
+    fake_output, fake_q_loss = stylegan.D(generated_images.detach())
     real_output, real_q_loss = stylegan.D(images)
 
     d_loss = (F.relu(1 + real_output) + F.relu(1 - fake_output)).mean()
     d_loss.backward()
+
     stylegan.D.opt.step()
 
     # quantize_loss = (fake_q_loss + real_q_loss).mean()

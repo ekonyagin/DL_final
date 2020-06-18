@@ -20,14 +20,15 @@ TRAIN_JOB=dl-final-train
 TRAIN_STREAM_LOGS=yes
 RUN?=$$(ROOT_DIR=$$(pwd) python -c 'import hashlib; from config import cfg; print("h" + hashlib.md5(bytes(cfg.EXPERIMENT_TAG.encode("utf-8"))).hexdigest())')
 DESCRIPTION=$$(ROOT_DIR=$$(pwd) python -c 'from config import cfg; print(cfg.EXPERIMENT_TAG)')
-TRAIN_CMD=make train
+TRAIN_CMD=make train-local
+PRESET?=gpu-small
 
 test:
 	echo $(RUN)
 
 .PHONY: upload-all
 upload-all: ### Setup remote environment
-	$(NEURO) cp --recursive ./* $(PROJECT_PATH_STORAGE)
+	$(NEURO) cp --recursive --update ./* $(PROJECT_PATH_STORAGE)
 
 .PHONY: upload-config
 upload-config:  ### Upload config directory to the platform storage
@@ -57,7 +58,7 @@ download-results:  ### Download results directory from the platform storage
 .PHONY: setup
 setup-cluster: ### Setup remote environment
 	$(NEURO) mkdir --parents $(PROJECT_PATH_STORAGE)
-	$(NEURO) cp --recursive ./* $(PROJECT_PATH_STORAGE)
+	$(NEURO) cp --recursive --update ./* $(PROJECT_PATH_STORAGE)
 	$(NEURO) run \
 		--name $(SETUP_JOB) \
 		--tag "target:setup" \
@@ -81,9 +82,10 @@ train: upload-config upload-code ### Run a training job (set up env var 'RUN' to
 	$(NEURO) run \
 		--name $(RUN) \
 		--tag "target:train" \
-		--preset gpu-small \
+		--preset $(PRESET) \
 		--detach \
 		--http 6006 \
+		--browse \
 		--no-http-auth \
 		--volume $(PROJECT_PATH_STORAGE):$(PROJECT_PATH_ENV):rw \
 		--volume storage:hologan/data:$(PROJECT_PATH_ENV)/data1:rw \

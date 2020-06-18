@@ -17,10 +17,6 @@ class BaseModel:
         set_requires_grad(self, True)
         self.train()
 
-    def step(self):
-        self.opt.step()
-        self.opt.zero_grad()
-
 
 def save(obj, checkpoint_name):
     checkpoint_path = get_checkpoint_path(checkpoint_name)
