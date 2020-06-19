@@ -10,7 +10,7 @@ from torch_optimizer import DiffGrad
 
 # Experiment setup
 
-CONTINUE = True
+RESTART = False
 ENCODER_CLASS = HoloEncoder
 DATASET = 'ffhq128'
 # DATASET = 'celeba'
@@ -95,7 +95,7 @@ EMB_CHECKPOINT_PATH = DATA_ROOT / 'emb_ckpt.pth'
 # Results
 
 RESULTS_ROOT = ROOT_DIR / 'results' / EXPERIMENT_TAG
-if not CONTINUE and RESULTS_ROOT.exists():
+if RESTART and RESULTS_ROOT.exists():
     shutil.rmtree(RESULTS_ROOT)
 SAMPLES_ROOT = RESULTS_ROOT / 'samples'
 SAMPLES_ROOT.mkdir(parents=True, exist_ok=True)
